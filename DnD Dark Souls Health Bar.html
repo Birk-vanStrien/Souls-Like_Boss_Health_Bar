@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Souls-like Boss Health Bar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Cinzel', serif;
+            background-color: #0a0a0a;
+            background-image: radial-gradient(circle at center, #1a1a1a 0%, #000000 100%);
+            color: #d4d4d4;
+            overflow-x: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .souls-border {
+            border: 2px solid #5c5c5c;
+            border-top-color: #888;
+            border-left-color: #888;
+            border-bottom-color: #333;
+            border-right-color: #333;
+            box-shadow: 0 0 15px rgba(0,0,0,0.8);
+        }
+
+        .bar-container {
+            position: relative;
+            width: 100%;
+            height: 32px; /* Slightly taller for boss-bar feel */
+            background: #1a1a1a;
+            border: 2px solid #333;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+            clip-path: polygon(1% 0, 99% 0, 100% 100%, 0% 100%);
+        }
+
+        /* Health bar */
+        .bar-red {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background: linear-gradient(to bottom, #a61919, #630b0b);
+            width: 100%;
+            z-index: 2;
+            transition: width 0.15s linear;
+            box-shadow: 4px 0 10px rgba(0,0,0,0.5);
+        }
+
+        /* Yellow damage bar */
+        .bar-yellow {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background: #d4b028;
+            width: 100%;
+            z-index: 1;
+            transition: width 0.8s ease-in 0.4s; 
+        }
+
+
+        /* Input styling */
+        .souls-input {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid #555;
+            color: #ddd;
+            font-family: 'Cinzel', serif;
+            transition: all 0.3s;
+        }
+        .souls-input:focus {
+            outline: none;
+            border-color: #a61919;
+            box-shadow: 0 0 10px rgba(166, 25, 25, 0.3);
+        }
+        
+        /* File input styling */
+        .souls-file-input::-webkit-file-upload-button {
+            background: #333;
+            border: 1px solid #555;
+            color: #ccc;
+            padding: 5px 10px;
+            font-family: 'Cinzel', serif;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        .souls-file-input::-webkit-file-upload-button:hover {
+            color: white;
+            border-color: #888;
+        }
+
+        /* Button styling */
+        .souls-btn {
+            background: linear-gradient(to bottom, #333, #1a1a1a);
+            border: 1px solid #555;
+            color: #ccc;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+        }
+        .souls-btn:hover {
+            border-color: #ddd;
+            color: #fff;
+            text-shadow: 0 0 5px #fff;
+            transform: translateY(-1px);
+        }
+        .souls-btn:active {
+            transform: translateY(1px);
+        }
+        /* Specific button colors */
+        .souls-btn-attack:hover {
+            color: #ff5555;
+            border-color: #a61919;
+            text-shadow: 0 0 5px #a61919;
+        }
+        .souls-btn-heal:hover {
+            color: #55ff55;
+            border-color: #19a619;
+            text-shadow: 0 0 5px #19a619;
+        }
+
+        /* Tab button styling */
+        .tab-btn {
+            color: #666;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        .tab-btn.active {
+            color: #d4d4d4;
+            border-bottom: 2px solid #a61919;
+            text-shadow: 0 0 5px rgba(166, 25, 25, 0.5);
+        }
+
+        /* Victory animation */
+        #victory-achieved {
+            opacity: 0;
+            transform: scale(1.1);
+            pointer-events: none;
+            transition: opacity 2s ease-in, transform 5s ease-out;
+        }
+        #victory-achieved.active {
+            opacity: 1;
+            transform: scale(1);
+        }
+        
+        #victory-achieved.active h1 {
+            text-shadow: 0 0 20px rgba(234, 179, 8, 0.7),
+                         0 0 30px rgba(234, 179, 8, 0.5),
+                         0 0 40px rgba(234, 179, 8, 0.3);
+        }
+
+        .shake {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        /* Portrait frame */
+        .portrait-frame {
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body class="py-8">
+
+    <div class="w-full max-w-4xl px-6 relative z-10 flex flex-col items-center">
+        
+        <div class="w-full flex flex-col items-center mb-8 transform transition-all duration-500">
+            
+            <div class="w-full max-w-2xl aspect-video portrait-frame rounded-sm mb-6 relative overflow-hidden flex items-center justify-center group transition-all duration-700">
+                <img id="hud-icon-img" class="w-full h-full object-contain hidden drop-shadow-2xl" alt="Character Portrait">
+                
+                <div id="hud-icon-placeholder" class="flex flex-col items-center justify-center text-gray-800 opacity-40">
+                    <span class="text-sm uppercase tracking-[0.3em] text-gray-600">No Portrait</span>
+                </div>
+                
+                <div class="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none"></div>
+            </div>
+
+            <div class="w-full max-w-3xl text-center mb-2 z-20">
+                <h2 id="name-display" class="text-4xl md:text-5xl text-gray-200 font-medium tracking-wide" style="text-shadow: 0 4px 15px black;">Boss</h2>
+            </div>
+
+            <div class="w-full max-w-3xl relative z-20">
+                <div class="bar-container">
+                    <div id="yellow-bar" class="bar-yellow"></div>
+                    <div id="red-bar" class="bar-red"></div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="mt-4 w-full max-w-lg souls-border bg-black/80 p-6 backdrop-blur-sm">
+            
+            <div class="flex justify-center gap-8 mb-6 border-b border-gray-800 pb-2">
+                <button onclick="switchTab('actions')" id="tab-btn-actions" class="tab-btn active px-4 py-2 font-bold uppercase text-sm">Actions</button>
+                <button onclick="switchTab('settings')" id="tab-btn-settings" class="tab-btn px-4 py-2 font-bold uppercase text-sm">Settings</button>
+            </div>
+
+            <div id="tab-actions">
+                <div class="flex gap-4 items-end mb-4">
+                    <div class="flex-1">
+                        <label class="block text-xs text-gray-500 mb-1 uppercase tracking-wider">Amount</label>
+                        <input type="number" id="change-input" class="w-full p-2 souls-input text-center text-lg text-red-400" placeholder="0">
+                    </div>
+                    <button onclick="applyDamage()" class="souls-btn souls-btn-attack px-6 py-2 h-[46px] font-bold text-red-400">Attack</button>
+                    <button onclick="applyHeal()" class="souls-btn souls-btn-heal px-6 py-2 h-[46px] font-bold text-green-400">Heal</button>
+                </div>
+
+                <div class="flex justify-center pt-4 border-t border-gray-800">
+                    <button onclick="resetGame()" class="souls-btn px-6 py-2 w-full font-bold text-gray-400 hover:text-white hover:border-gray-500 transition-all">
+                        Reset
+                    </button>
+                </div>
+            </div>
+
+            <div id="tab-settings" class="hidden space-y-4">
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1 uppercase tracking-wider">Character Name</label>
+                    <input type="text" id="name-input" value="Boss" class="w-full p-2 souls-input text-lg" placeholder="Enter Name">
+                </div>
+
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1 uppercase tracking-wider">Character Portrait</label>
+                    <input type="file" id="icon-upload" accept="image/*" class="w-full p-2 souls-input souls-file-input text-sm text-gray-400">
+                </div>
+
+                <div class="flex gap-4 items-end pt-2 border-t border-gray-800">
+                    <div class="flex-1">
+                        <label class="block text-xs text-gray-500 mb-1 uppercase tracking-wider">Total Health</label>
+                        <input type="number" id="max-hp-input" value="1000" class="w-full p-2 souls-input text-center text-lg" placeholder="Max HP">
+                    </div>
+                    <button onclick="setMaxHp()" class="souls-btn px-6 py-2 h-[46px] font-bold">Set Max</button>
+                </div>
+                <p class="text-xs text-gray-600 text-center italic">Adjusting max health will fully heal the character.</p>
+            </div>
+            
+        </div>
+    </div>
+
+    <div id="victory-achieved" class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 pointer-events-none">
+        <div class="relative flex flex-col items-center">
+            <h1 class="text-6xl md:text-8xl font-black text-yellow-300 tracking-widest text-center">VICTORY ACHIEVED</h1>
+            <div class="w-3/4 h-1 bg-gradient-to-r from-transparent via-yellow-500 to-transparent mt-8 opacity-80"></div>
+        </div>
+    </div>
+
+    <script>
+        // Game State
+        let maxHealth = 1000;
+        let currentHealth = 1000;
+
+        // DOM Elements
+        const redBar = document.getElementById('red-bar');
+        const yellowBar = document.getElementById('yellow-bar');
+        const changeInput = document.getElementById('change-input'); // Renamed from damage-input
+        const maxHpInput = document.getElementById('max-hp-input');
+        const victoryScreen = document.getElementById('victory-achieved');
+        const container = document.querySelector('.w-full.max-w-2xl'); // Shake the image container
+        
+        // Tab Elements
+        const tabActions = document.getElementById('tab-actions');
+        const tabSettings = document.getElementById('tab-settings');
+        const btnActions = document.getElementById('tab-btn-actions');
+        const btnSettings = document.getElementById('tab-btn-settings');
+
+        // Customization Elements
+        const nameInput = document.getElementById('name-input');
+        const nameDisplay = document.getElementById('name-display');
+        const iconUpload = document.getElementById('icon-upload');
+        const hudIconImg = document.getElementById('hud-icon-img');
+        const hudIconPlaceholder = document.getElementById('hud-icon-placeholder');
+
+        // Initialize
+        updateVisuals();
+
+        // Event Listeners
+        changeInput.addEventListener("keypress", function(event) {
+            if (event.key === "Enter") applyDamage(); // Default Enter to Attack
+        });
+        
+        maxHpInput.addEventListener("keypress", function(event) {
+            if (event.key === "Enter") setMaxHp();
+        });
+
+        // Live Name Update
+        nameInput.addEventListener('input', function(e) {
+            nameDisplay.textContent = e.target.value || "Boss";
+        });
+
+        // Image Upload Handler
+        iconUpload.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    hudIconImg.src = e.target.result;
+                    hudIconImg.classList.remove('hidden');
+                    hudIconPlaceholder.classList.add('hidden');
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function switchTab(tabName) {
+            if (tabName === 'actions') {
+                tabActions.classList.remove('hidden');
+                tabSettings.classList.add('hidden');
+                btnActions.classList.add('active');
+                btnSettings.classList.remove('active');
+                setTimeout(() => changeInput.focus(), 50);
+            } else {
+                tabActions.classList.add('hidden');
+                tabSettings.classList.remove('hidden');
+                btnActions.classList.remove('active');
+                btnSettings.classList.add('active');
+                setTimeout(() => nameInput.focus(), 50);
+            }
+        }
+
+        function setMaxHp() {
+            const val = parseInt(maxHpInput.value);
+            if (!isNaN(val) && val > 0) {
+                maxHealth = val;
+                currentHealth = val; // Reset health when max changes
+                resetVictory();
+                updateVisuals();
+                
+                // Reset yellow bar instantly
+                yellowBar.style.transition = 'none';
+                yellowBar.style.width = '100%';
+                // Force reflow
+                yellowBar.offsetHeight; 
+                yellowBar.style.transition = 'width 0.8s ease-in 0.4s';
+                
+                // Switch back to action tab after setting
+                switchTab('actions');
+            }
+        }
+
+        function applyDamage() {
+            const damage = parseInt(changeInput.value);
+            
+            if (!isNaN(damage) && damage > 0 && currentHealth > 0) {
+                // Shake effect
+                if(container) {
+                    container.classList.remove('shake');
+                    void container.offsetWidth; // trigger reflow
+                    container.classList.add('shake');
+                }
+
+                currentHealth = Math.max(0, currentHealth - damage);
+                updateVisuals();
+                
+                changeInput.value = ''; // Clear input
+                changeInput.focus();
+
+                if (currentHealth === 0) {
+                    triggerVictory();
+                }
+            }
+        }
+        
+        // NEW FUNCTION: Apply Heal
+        function applyHeal() {
+            const healAmount = parseInt(changeInput.value);
+            
+            if (!isNaN(healAmount) && healAmount > 0 && currentHealth < maxHealth) {
+                currentHealth = Math.min(maxHealth, currentHealth + healAmount);
+                updateVisuals();
+                resetVictory();
+
+                // Reset red bar transition for instant heal
+                redBar.style.transition = 'none';
+                redBar.style.width = `${(currentHealth / maxHealth) * 100}%`;
+                redBar.offsetHeight; // Force reflow
+                redBar.style.transition = 'width 0.15s linear';
+
+                // Yellow bar snaps to red bar's position after a short delay
+                setTimeout(() => {
+                    yellowBar.style.width = `${(currentHealth / maxHealth) * 100}%`;
+                }, 100);
+
+                changeInput.value = ''; // Clear input
+                changeInput.focus();
+            }
+        }
+
+        function resetGame() {
+            currentHealth = maxHealth;
+            resetVictory();
+            updateVisuals();
+            changeInput.value = ''; // Clear any pending damage input
+            changeInput.focus();
+            
+            // Reset animations
+            yellowBar.style.transition = 'none';
+            yellowBar.style.width = '100%';
+            redBar.style.transition = 'none';
+            redBar.style.width = '100%';
+            yellowBar.offsetHeight; // Force reflow
+            redBar.offsetHeight; // Force reflow
+            setTimeout(() => {
+                yellowBar.style.transition = 'width 0.8s ease-in 0.4s';
+                redBar.style.transition = 'width 0.15s linear';
+            }, 50);
+        }
+
+        function updateVisuals() {
+            const percentage = (currentHealth / maxHealth) * 100;
+            
+            // Update Bars
+            redBar.style.width = `${percentage}%`;
+            
+            // Note: The yellow bar update is handled by the damage/heal functions
+            // to preserve the unique delayed damage transition effect.
+            if (currentHealth < maxHealth) {
+                 yellowBar.style.width = `${percentage}%`;
+            }
+        }
+
+        function triggerVictory() {
+            victoryScreen.classList.add('active');
+        }
+
+        function resetVictory() {
+            victoryScreen.classList.remove('active');
+        }
+    </script>
+</body>
+</html>
