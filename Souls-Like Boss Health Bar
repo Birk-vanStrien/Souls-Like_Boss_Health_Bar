@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Souls-like Boss Health Bar</title>
+    <title>Souls-like Dual Boss Health Bar</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
@@ -28,7 +28,6 @@
             box-shadow: 0 0 15px rgba(0,0,0,0.8);
         }
 
-        /* Health bar container */
         .bar-container {
             position: relative;
             width: 100%;
@@ -38,7 +37,6 @@
             box-shadow: 0 0 20px rgba(0,0,0,0.8);
         }
 
-        /* Health bar */
         .bar-red {
             position: absolute;
             top: 0;
@@ -51,7 +49,6 @@
             box-shadow: 4px 0 10px rgba(0,0,0,0.5);
         }
 
-        /* Yellow damage bar */
         .bar-yellow {
             position: absolute;
             top: 0;
@@ -63,8 +60,6 @@
             transition: width 0.8s ease-in 0.4s; 
         }
 
-
-        /* Input styling */
         .slhb-input {
             background: rgba(0, 0, 0, 0.6);
             border: 1px solid #555;
@@ -78,7 +73,6 @@
             box-shadow: 0 0 10px rgba(166, 25, 25, 0.3);
         }
         
-        /* File input styling */
         .slhb-file-input::-webkit-file-upload-button {
             background: #333;
             border: 1px solid #555;
@@ -93,7 +87,6 @@
             border-color: #888;
         }
 
-        /* Button styling */
         .slhb-btn {
             background: linear-gradient(to bottom, #333, #1a1a1a);
             border: 1px solid #555;
@@ -111,7 +104,6 @@
         .slhb-btn:active {
             transform: translateY(1px);
         }
-        /* Specific button colors */
         .slhb-btn-attack:hover {
             color: #ff5555;
             border-color: #a61919;
@@ -123,7 +115,6 @@
             text-shadow: 0 0 5px #19a619;
         }
 
-        /* Tab button styling */
         .tab-btn {
             color: #666;
             border-bottom: 2px solid transparent;
@@ -135,7 +126,6 @@
             text-shadow: 0 0 5px rgba(166, 25, 25, 0.5);
         }
 
-        /* Victory animation */
         #victory-achieved {
             opacity: 0;
             transform: scale(1.1);
@@ -164,7 +154,6 @@
             40%, 60% { transform: translate3d(4px, 0, 0); }
         }
 
-        /* Portrait frame */
         .portrait-frame {
             box-shadow: 0 0 30px rgba(0,0,0,0.8);
             border: 1px solid rgba(255,255,255,0.1);
@@ -188,14 +177,23 @@
                 <div class="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none"></div>
             </div>
 
-            <div class="w-full max-w-3xl text-center mb-2 z-20">
-                <h2 id="name-display" class="text-4xl md:text-5xl text-gray-200 font-medium tracking-wide" style="text-shadow: 0 4px 15px black;">Boss</h2>
+            <div class="w-full max-w-3xl relative z-20 mb-6">
+                <div class="text-left mb-1 pl-1">
+                    <h2 id="name-display-1" class="text-3xl text-gray-200 font-medium tracking-wide" style="text-shadow: 0 4px 15px black;">Boss</h2>
+                </div>
+                <div class="bar-container">
+                    <div id="yellow-bar-1" class="bar-yellow"></div>
+                    <div id="red-bar-1" class="bar-red"></div>
+                </div>
             </div>
 
-            <div class="w-full max-w-3xl relative z-20">
+            <div id="boss2-display-container" class="w-full max-w-3xl relative z-20">
+                <div class="text-left mb-1 pl-1">
+                    <h2 id="name-display-2" class="text-3xl text-gray-200 font-medium tracking-wide" style="text-shadow: 0 4px 15px black;">Boss 2</h2>
+                </div>
                 <div class="bar-container">
-                    <div id="yellow-bar" class="bar-yellow"></div>
-                    <div id="red-bar" class="bar-red"></div>
+                    <div id="yellow-bar-2" class="bar-yellow"></div>
+                    <div id="red-bar-2" class="bar-red"></div>
                 </div>
             </div>
 
@@ -209,41 +207,71 @@
             </div>
 
             <div id="tab-actions">
-                <div class="flex gap-4 items-end mb-4">
+                <div class="flex gap-4 items-end mb-6">
                     <div class="flex-1">
                         <label class="block text-xs text-gray-500 mb-1 uppercase tracking-wider">Amount</label>
-                        <input type="number" id="change-input" class="w-full p-2 slhb-input text-center text-lg text-red-400" placeholder="0">
+                        <input type="number" id="change-input-1" class="w-full p-2 slhb-input text-center text-lg text-red-400" placeholder="0">
                     </div>
-                    <button onclick="applyDamage()" class="slhb-btn slhb-btn-attack px-6 py-2 h-[46px] font-bold text-red-400">Attack</button>
-                    <button onclick="applyHeal()" class="slhb-btn slhb-btn-heal px-6 py-2 h-[46px] font-bold text-green-400">Heal</button>
+                    <button onclick="applyDamage(1)" class="slhb-btn slhb-btn-attack px-6 py-2 h-[46px] font-bold text-red-400">Attack</button>
+                    <button onclick="applyHeal(1)" class="slhb-btn slhb-btn-heal px-6 py-2 h-[46px] font-bold text-green-400">Heal</button>
+                </div>
+
+                <div id="boss2-action-controls" class="flex gap-4 items-end mb-4 pt-4 border-t border-gray-800">
+                    <div class="flex-1">
+                        <label class="block text-xs text-gray-500 mb-1 uppercase tracking-wider">Amount</label>
+                        <input type="number" id="change-input-2" class="w-full p-2 slhb-input text-center text-lg text-red-400" placeholder="0">
+                    </div>
+                    <button onclick="applyDamage(2)" class="slhb-btn slhb-btn-attack px-6 py-2 h-[46px] font-bold text-red-400">Attack</button>
+                    <button onclick="applyHeal(2)" class="slhb-btn slhb-btn-heal px-6 py-2 h-[46px] font-bold text-green-400">Heal</button>
                 </div>
 
                 <div class="flex justify-center pt-4 border-t border-gray-800">
                     <button onclick="resetGame()" class="slhb-btn px-6 py-2 w-full font-bold text-gray-400 hover:text-white hover:border-gray-500 transition-all">
-                        Reset
+                        Reset All
                     </button>
                 </div>
             </div>
 
             <div id="tab-settings" class="hidden space-y-4">
-                <div>
-                    <label class="block text-xs text-gray-500 mb-1 uppercase tracking-wider">Character Name</label>
-                    <input type="text" id="name-input" value="Boss" class="w-full p-2 slhb-input text-lg" placeholder="Enter Name">
+                
+                <div class="pt-2 border-t border-gray-800">
+                    <label class="block text-xs text-gray-500 mb-1 uppercase tracking-wider">Boss 2 Visibility</label>
+                    <div class="flex items-center space-x-2 p-2 slhb-input rounded-md">
+                        <input type="checkbox" id="boss2-toggle" class="w-4 h-4 text-red-600 bg-gray-700 border-gray-600 rounded focus:ring-red-500">
+                        <span class="text-sm text-gray-200">Enable second boss</span>
+                    </div>
                 </div>
 
                 <div>
-                    <label class="block text-xs text-gray-500 mb-1 uppercase tracking-wider">Character Portrait</label>
+                    <label class="block text-xs text-gray-500 mb-1 uppercase tracking-wider">Boss Name</label>
+                    <input type="text" id="name-input-1" value="Boss" class="w-full p-2 slhb-input text-lg" placeholder="Enter Name">
+                </div>
+
+                <div id="boss2-name-setting">
+                    <label class="block text-xs text-gray-500 mb-1 uppercase tracking-wider">Boss 2 Name</label>
+                    <input type="text" id="name-input-2" value="Boss 2" class="w-full p-2 slhb-input text-lg" placeholder="Enter Name">
+                </div>
+
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1 uppercase tracking-wider">Boss Portrait</label>
                     <input type="file" id="icon-upload" accept="image/*" class="w-full p-2 slhb-input slhb-file-input text-sm text-gray-400">
                 </div>
 
                 <div class="flex gap-4 items-end pt-2 border-t border-gray-800">
                     <div class="flex-1">
-                        <label class="block text-xs text-gray-500 mb-1 uppercase tracking-wider">Total Health</label>
-                        <input type="number" id="max-hp-input" value="1000" class="w-full p-2 slhb-input text-center text-lg" placeholder="Max HP">
+                        <label class="block text-xs text-gray-500 mb-1 uppercase tracking-wider">Total Health Boss 1</label>
+                        <input type="number" id="max-hp-input-1" value="1000" class="w-full p-2 slhb-input text-center text-lg" placeholder="Max HP">
                     </div>
-                    <button onclick="setMaxHp()" class="slhb-btn px-6 py-2 h-[46px] font-bold">Set Max</button>
+                    <button onclick="setMaxHp(1)" class="slhb-btn px-6 py-2 h-[46px] font-bold">Set Max</button>
                 </div>
-                <p class="text-xs text-gray-600 text-center italic">Adjusting max health will fully heal the character.</p>
+
+                <div id="boss2-hp-setting" class="flex gap-4 items-end pt-2 border-t border-gray-800">
+                    <div class="flex-1">
+                        <label class="block text-xs text-gray-500 mb-1 uppercase tracking-wider">Total Health Boss 2</label>
+                        <input type="number" id="max-hp-input-2" value="1000" class="w-full p-2 slhb-input text-center text-lg" placeholder="Max HP">
+                    </div>
+                    <button onclick="setMaxHp(2)" class="slhb-btn px-6 py-2 h-[46px] font-bold">Set Max</button>
+                </div>               
             </div>
             
         </div>
@@ -257,49 +285,47 @@
     </div>
 
     <script>
-        // Game state
-        let maxHealth = 1000;
-        let currentHealth = 1000;
+        let bosses = {
+            1: { current: 1000, max: 1000 },
+            2: { current: 1000, max: 1000 }
+        };
 
-        // DOM elements
-        const redBar = document.getElementById('red-bar');
-        const yellowBar = document.getElementById('yellow-bar');
-        const changeInput = document.getElementById('change-input'); 
-        const maxHpInput = document.getElementById('max-hp-input');
         const victoryScreen = document.getElementById('victory-achieved');
         const container = document.querySelector('.w-full.max-w-2xl');
         
-        // Tab elements
         const tabActions = document.getElementById('tab-actions');
         const tabSettings = document.getElementById('tab-settings');
         const btnActions = document.getElementById('tab-btn-actions');
         const btnSettings = document.getElementById('tab-btn-settings');
 
-        // Customization elements
-        const nameInput = document.getElementById('name-input');
-        const nameDisplay = document.getElementById('name-display');
         const iconUpload = document.getElementById('icon-upload');
         const hudIconImg = document.getElementById('hud-icon-img');
         const hudIconPlaceholder = document.getElementById('hud-icon-placeholder');
+        
+        const boss2Display = document.getElementById('boss2-display-container');
+        const boss2ActionControls = document.getElementById('boss2-action-controls');
+        const boss2NameSetting = document.getElementById('boss2-name-setting');
+        const boss2HpSetting = document.getElementById('boss2-hp-setting');
+        const boss2Toggle = document.getElementById('boss2-toggle');
 
-        // Initialize
-        updateVisuals();
+        updateVisuals(1);
+        updateVisuals(2);
+        toggleBoss2();
 
-        // Event listeners
-        changeInput.addEventListener("keypress", function(event) {
-            if (event.key === "Enter") applyDamage(); 
+        document.getElementById('change-input-1').addEventListener("keypress", (e) => { if (e.key === "Enter") applyDamage(1); });
+        document.getElementById('change-input-2').addEventListener("keypress", (e) => { if (e.key === "Enter") applyDamage(2); });
+        document.getElementById('max-hp-input-1').addEventListener("keypress", (e) => { if (e.key === "Enter") setMaxHp(1); });
+        document.getElementById('max-hp-input-2').addEventListener("keypress", (e) => { if (e.key === "Enter") setMaxHp(2); });
+
+        document.getElementById('name-input-1').addEventListener('input', (e) => {
+            document.getElementById('name-display-1').textContent = e.target.value || "Boss";
+        });
+        document.getElementById('name-input-2').addEventListener('input', (e) => {
+            document.getElementById('name-display-2').textContent = e.target.value || "Boss 2";
         });
         
-        maxHpInput.addEventListener("keypress", function(event) {
-            if (event.key === "Enter") setMaxHp();
-        });
+        boss2Toggle.addEventListener('change', toggleBoss2);
 
-        // Live name update
-        nameInput.addEventListener('input', function(e) {
-            nameDisplay.textContent = e.target.value || "Boss";
-        });
-
-        // Image upload handler
         iconUpload.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
@@ -312,6 +338,29 @@
                 reader.readAsDataURL(file);
             }
         });
+        
+        function toggleBoss2() {
+            const isEnabled = boss2Toggle.checked;
+            
+            boss2Display.classList.toggle('hidden', !isEnabled);
+            boss2ActionControls.classList.toggle('hidden', !isEnabled);
+            boss2NameSetting.classList.toggle('hidden', !isEnabled);
+            boss2HpSetting.classList.toggle('hidden', !isEnabled);
+            
+            if (!isEnabled) {
+                bosses[2].current = 0; 
+                updateVisuals(2);
+                if (bosses[1].current === 0) {
+                    triggerVictory();
+                } else {
+                    resetVictory();
+                }
+            } else {
+                bosses[2].current = bosses[2].max;
+                updateVisuals(2);
+                resetVictory();
+            }
+        }
 
         function switchTab(tabName) {
             if (tabName === 'actions') {
@@ -319,101 +368,125 @@
                 tabSettings.classList.add('hidden');
                 btnActions.classList.add('active');
                 btnSettings.classList.remove('active');
-                setTimeout(() => changeInput.focus(), 50);
             } else {
                 tabActions.classList.add('hidden');
                 tabSettings.classList.remove('hidden');
                 btnActions.classList.remove('active');
                 btnSettings.classList.add('active');
-                setTimeout(() => nameInput.focus(), 50);
             }
         }
 
-        function setMaxHp() {
-            const val = parseInt(maxHpInput.value);
+        function setMaxHp(id) {
+            const input = document.getElementById(`max-hp-input-${id}`);
+            const val = parseInt(input.value);
             if (!isNaN(val) && val > 0) {
-                maxHealth = val;
-                updateVisuals();
-                // Switch back to action tab after setting
+                bosses[id].max = val;
+                bosses[id].current = val;
+                updateVisuals(id);
                 switchTab('actions');
             }
         }
 
-        function applyDamage() {
-            const damage = parseInt(changeInput.value);
+        function applyDamage(id) {
+            const input = document.getElementById(`change-input-${id}`);
+            const damage = parseInt(input.value);
             
-            if (!isNaN(damage) && damage > 0 && currentHealth > 0) {
-                // Shake effect
+            if (!isNaN(damage) && damage > 0 && bosses[id].current > 0) {
                 if(container) {
                     container.classList.remove('shake');
-                    void container.offsetWidth; // trigger reflow
+                    void container.offsetWidth; 
                     container.classList.add('shake');
                 }
 
-                currentHealth = Math.max(0, currentHealth - damage);
-                updateVisuals();
+                bosses[id].current = Math.max(0, bosses[id].current - damage);
+                updateVisuals(id);
                 
-                changeInput.value = ''; // Clear input
-                changeInput.focus();
+                input.value = '';
+                input.focus();
 
-                if (currentHealth === 0) {
+                const boss2Enabled = boss2Toggle.checked;
+                const isBoss2Dead = !boss2Enabled || bosses[2].current === 0;
+
+                if (bosses[1].current === 0 && isBoss2Dead) {
                     triggerVictory();
                 }
             }
         }
         
-        function applyHeal() {
-            const healAmount = parseInt(changeInput.value);
+        function applyHeal(id) {
+            const input = document.getElementById(`change-input-${id}`);
+            const healAmount = parseInt(input.value);
             
-            if (!isNaN(healAmount) && healAmount > 0 && currentHealth < maxHealth) {
-                currentHealth = Math.min(maxHealth, currentHealth + healAmount);
-                updateVisuals();
+            if (!isNaN(healAmount) && healAmount > 0 && bosses[id].current < bosses[id].max) {
+                bosses[id].current = Math.min(bosses[id].max, bosses[id].current + healAmount);
+                updateVisuals(id);
                 resetVictory();
 
+                const redBar = document.getElementById(`red-bar-${id}`);
+                const yellowBar = document.getElementById(`yellow-bar-${id}`);
+
                 redBar.style.transition = 'none';
-                redBar.style.width = `${(currentHealth / maxHealth) * 100}%`;
-                redBar.offsetHeight; // Force reflow
+                redBar.style.width = `${(bosses[id].current / bosses[id].max) * 100}%`;
+                redBar.offsetHeight; 
                 redBar.style.transition = 'width 0.15s linear';
 
-                // Reset yellow bar 
-                yellowBar.style.width = `${(currentHealth / maxHealth) * 100}%`;
+                yellowBar.style.width = `${(bosses[id].current / bosses[id].max) * 100}%`;
 
-
-                changeInput.value = ''; // Clear input
-                changeInput.focus();
+                input.value = '';
+                input.focus();
             }
         }
 
         function resetGame() {
-            currentHealth = maxHealth;
-            resetVictory();
-            updateVisuals();
-            changeInput.value = '';
-            changeInput.focus();
+            bosses[1].current = bosses[1].max;
+            if (boss2Toggle.checked) {
+                bosses[2].current = bosses[2].max;
+            } else {
+                bosses[2].current = 0;
+            }
             
-            // Reset animations
-            yellowBar.style.transition = 'none';
-            yellowBar.style.width = '100%';
-            redBar.style.transition = 'none';
-            redBar.style.width = '100%';
-            yellowBar.offsetHeight; 
-            redBar.offsetHeight; 
-            setTimeout(() => {
-                yellowBar.style.transition = 'width 0.8s ease-in 0.4s';
-                redBar.style.transition = 'width 0.15s linear';
-            }, 50);
+            resetVictory();
+            
+            [1, 2].forEach(id => {
+                updateVisuals(id);
+                document.getElementById(`change-input-${id}`).value = '';
+                
+                const yellowBar = document.getElementById(`yellow-bar-${id}`);
+                const redBar = document.getElementById(`red-bar-${id}`);
+                
+                yellowBar.style.transition = 'none';
+                redBar.style.transition = 'none';
+
+                if (id === 2 && !boss2Toggle.checked) {
+                     yellowBar.style.width = '0%';
+                     redBar.style.width = '0%';
+                } else {
+                     yellowBar.style.width = '100%';
+                     redBar.style.width = '100%';
+                }
+
+                yellowBar.offsetHeight; 
+                redBar.offsetHeight; 
+                setTimeout(() => {
+                    yellowBar.style.transition = 'width 0.8s ease-in 0.4s';
+                    redBar.style.transition = 'width 0.15s linear';
+                }, 50);
+            });
         }
 
-        function updateVisuals() {
-            const percentage = (currentHealth / maxHealth) * 100;
+        function updateVisuals(id) {
+            const percentage = (bosses[id].current / bosses[id].max) * 100;
+            const redBar = document.getElementById(`red-bar-${id}`);
+            const yellowBar = document.getElementById(`yellow-bar-${id}`);
             
-            // Update Bars
-            redBar.style.width = `${percentage}%`;
-            
-            // Note: The yellow bar update is handled by the damage/heal functions
-            // to preserve the unique delayed damage transition effect.
-            if (currentHealth < maxHealth) {
-                 yellowBar.style.width = `${percentage}%`;
+            if (id === 2 && !boss2Toggle.checked) {
+                redBar.style.width = '0%';
+                yellowBar.style.width = '0%';
+            } else {
+                redBar.style.width = `${percentage}%`;
+                if (bosses[id].current < bosses[id].max) {
+                     yellowBar.style.width = `${percentage}%`;
+                }
             }
         }
 
