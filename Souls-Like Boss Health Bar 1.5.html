@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Souls-like Dual Boss Health Bar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Cinzel', serif;
+            background-color: #0a0a0a;
+            background-image: radial-gradient(circle at center, #1a1a1a 0%, #000000 100%);
+            color: #d4d4d4;
+            overflow-x: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;         
+        }
+
+        body::-webkit-scrollbar {
+            display: none;
+        }
+
+        .slhb-border {
+            border: 2px solid #5c5c5c;
+            border-top-color: #888;
+            border-left-color: #888;
+            border-bottom-color: #333;
+            border-right-color: #333;
+            box-shadow: 0 0 15px rgba(0,0,0,0.8);
+        }
+        /* Health bar container */
+        .bar-container {
+            position: relative;
+            width: 100%;
+            height: 32px;
+            background: #1a1a1a;
+            border: 2px solid #333;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+        }
+        /* Health bar */
+        .bar-red {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background: linear-gradient(to bottom, #a61919, #630b0b);
+            width: 100%;
+            z-index: 2;
+            transition: width 0.15s linear;
+            box-shadow: 4px 0 10px rgba(0,0,0,0.5);
+        }
+        /* Yellow damage indicator */
+        .bar-yellow {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background: #d4b028;
+            width: 100%;
+            z-index: 1;
+            transition: width 0.8s ease-in 0.4s; 
+        }
+        /* Input field */
+        .slhb-input {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid #555;
+            color: #ddd;
+            font-family: 'Cinzel', serif;
+            transition: all 0.3s;
+        }
+        .slhb-input:focus {
+            outline: none;
+            border-color: #a61919;
+            box-shadow: 0 0 10px rgba(166, 25, 25, 0.3);
+        }
+        /* Removes input arrows */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        /* Boss picture upload */
+        .slhb-file-input::-webkit-file-upload-button {
+            background: #333;
+            border: 1px solid #555;
+            color: #ccc;
+            padding: 5px 10px;
+            font-family: 'Cinzel', serif;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        .slhb-file-input::-webkit-file-upload-button:hover {
+            color: white;
+            border-color: #888;
+        }
+
+        .slhb-btn {
+            background: linear-gradient(to bottom, #333, #1a1a1a);
+            border: 1px solid #555;
+            color: #ccc;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+        }
+        .slhb-btn:hover {
+            border-color: #ddd;
+            color: #fff;
+            text-shadow: 0 0 5px #fff;
+            transform: translateY(-1px);
+        }
+        .slhb-btn:active {
+            transform: translateY(1px);
+        }
+
+        /* Input buttons */
+        .attack-button:hover {
+            color: #ff5555;
+            border-color: #a61919;
+            text-shadow: 0 0 5px #a61919;
+        }
+        .heal-button:hover {
+            color: #55ff55;
+            border-color: #19a619;
+            text-shadow: 0 0 5px #19a619;
+        }
+        .quick-button {
+            background: rgba(0,0,0,0.5);
+            border: 1px solid #444;
+            color: #888;
+            font-size: 0.7rem;
+            transition: all 0.2s;
+        }
+        .quick-button:hover {
+            background: rgba(50,50,50,0.8);
+            border-color: #888;
+            color: #fff;
+        }
+
+        /* Tabs */
+        .tab-button {
+            color: #666;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        .tab-button.active {
+            color: #d4d4d4;
+            border-bottom: 2px solid #a61919;
+            text-shadow: 0 0 5px rgba(166, 25, 25, 0.5);
+        }
+
+        /* Victory screen */
+        #victory-achieved {
+            opacity: 0;
+            transform: scale(1.1);
+            pointer-events: none;
+            transition: opacity 2s ease-in, transform 5s ease-out;
+        }
+        #victory-achieved.active {
+            opacity: 1;
+            transform: scale(1);
+        }
+        
+        #victory-achieved.active h1 {
+            text-shadow: 0 0 20px rgba(234, 179, 8, 0.7),
+                         0 0 30px rgba(234, 179, 8, 0.5),
+                         0 0 40px rgba(234, 179, 8, 0.3);
+        }
+
+        /* Shake on attack */
+        .shake {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        .portrait-frame {
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.3);
+        }
+
+        /* Numpad styles */
+        .numpad-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 4px;
+            margin-top: 8px;
+        }
+        .numpad-btn {
+            background: rgba(20, 20, 20, 0.9);
+            border: 1px solid #444;
+            color: #ccc;
+            padding: 8px;
+            font-family: 'Cinzel', serif;
+            transition: all 0.1s;
+            font-size: 1rem;
+            border-radius: 4px;
+        }
+        .numpad-btn:hover {
+            background: #333;
+            border-color: #888;
+            color: #fff;
+        }
+        .numpad-btn:active {
+            background: #555;
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+<body class="py-8">
+
+    <div class="w-full max-w-4xl px-6 relative z-10 flex flex-col items-center">
+        
+        <div class="w-full flex flex-col items-center mb-8 transform transition-all duration-500">
+            
+            <div class="w-full max-w-2xl aspect-video portrait-frame rounded-sm mb-6 relative overflow-hidden flex items-center justify-center group transition-all duration-700">
+                <img id="hud-icon-img" class="w-full h-full object-contain hidden drop-shadow-2xl" alt="Character Portrait">
+                
+                <div id="hud-icon-placeholder" class="flex flex-col items-center justify-center text-gray-800 opacity-40">
+                    <span class="text-sm uppercase tracking-[0.3em] text-gray-600">No Portrait</span>
+                </div>
+                
+                <div class="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none"></div>
+            </div>
+            <div class="w-full max-w-3xl relative z-20 mb-6">
+                <div class="text-left mb-1 pl-1">
+                    <h2 id="name-display-1" class="text-3xl text-gray-200 font-medium tracking-wide" style="text-shadow: 0 4px 15px black;">Boss</h2>
+                </div>
+                <div class="bar-container">
+                    <div id="yellow-bar-1" class="bar-yellow"></div>
+                    <div id="red-bar-1" class="bar-red"></div>
+                </div>
+            </div>
+            <div id="boss2-display-container" class="w-full max-w-3xl relative z-20">
+                <div class="text-left mb-1 pl-1">
+                    <h2 id="name-display-2" class="text-3xl text-gray-200 font-medium tracking-wide" style="text-shadow: 0 4px 15px black;">Boss 2</h2>
+                </div>
+                <div class="bar-container">
+                    <div id="yellow-bar-2" class="bar-yellow"></div>
+                    <div id="red-bar-2" class="bar-red"></div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="mt-4 w-full max-w-lg slhb-border bg-black/80 p-6 backdrop-blur-sm">
+            <div class="flex justify-center gap-8 mb-6 border-b border-gray-800 pb-2">
+                <button onclick="switchTab('actions')" id="tab-button-actions" class="tab-button active px-4 py-2 font-bold uppercase text-sm">Actions</button>
+                <button onclick="switchTab('settings')" id="tab-button-settings" class="tab-button px-4 py-2 font-bold uppercase text-sm">Settings</button>
+            </div>
+            <div id="tab-actions">
+                <div class="flex gap-4 items-start mb-6">
+                    <div class="flex-1">
+                        <label class="block text-xs text-gray-500 mb-1 uppercase tracking-wider">Amount</label>
+                        <input type="number" id="change-input-1" class="w-full p-2 slhb-input text-center text-lg text-white-400" placeholder="0">
+                        <div id="quick-buttons-1" class="flex justify-between mt-1 px-1 gap-1">
+                            <button onclick="adjustValue(1, -10)" class="quick-button flex-1 rounded">-10</button>
+                            <button onclick="adjustValue(1, -1)" class="quick-button flex-1 rounded">-1</button>
+                            <button onclick="adjustValue(1, 1)" class="quick-button flex-1 rounded">+1</button>
+                            <button onclick="adjustValue(1, 10)" class="quick-button flex-1 rounded">+10</button>
+                        </div>
+                        <div id="numpad-container-1" class="hidden numpad-grid">
+                            <button onclick="numpadPress(1, '1')" class="numpad-btn">1</button>
+                            <button onclick="numpadPress(1, '2')" class="numpad-btn">2</button>
+                            <button onclick="numpadPress(1, '3')" class="numpad-btn">3</button>
+                            <button onclick="numpadPress(1, '4')" class="numpad-btn">4</button>
+                            <button onclick="numpadPress(1, '5')" class="numpad-btn">5</button>
+                            <button onclick="numpadPress(1, '6')" class="numpad-btn">6</button>
+                            <button onclick="numpadPress(1, '7')" class="numpad-btn">7</button>
+                            <button onclick="numpadPress(1, '8')" class="numpad-btn">8</button>
+                            <button onclick="numpadPress(1, '9')" class="numpad-btn">9</button>
+                            <button onclick="numpadPress(1, 'C')" class="numpad-btn text-red-400 font-bold">C</button>
+                            <button onclick="numpadPress(1, '0')" class="numpad-btn">0</button>
+                            <button onclick="numpadPress(1, 'DEL')" class="numpad-btn text-yellow-500 font-bold">←</button>
+                        </div>
+                    </div>
+                    <div class="flex gap-4 mt-5">
+                        <button onclick="applyDamage(1)" class="slhb-btn attack-button px-6 py-2 h-[46px] font-bold text-red-400">Attack</button>
+                        <button onclick="applyHeal(1)" class="slhb-btn heal-button px-6 py-2 h-[46px] font-bold text-green-400">Heal</button>
+                    </div>
+                </div>
+                
+                <div id="boss2-action-controls" class="flex gap-4 items-start mb-4 pt-4 border-t border-gray-800">
+                    <div class="flex-1">
+                        <label class="block text-xs text-gray-500 mb-1 uppercase tracking-wider">Amount</label>
+                        <input type="number" id="change-input-2" class="w-full p-2 slhb-input text-center text-lg text-white-400" placeholder="0">
+                         <div id="quick-buttons-2" class="flex justify-between mt-1 px-1 gap-1">
+                            <button onclick="adjustValue(2, -10)" class="quick-button flex-1 rounded">-10</button>
+                            <button onclick="adjustValue(2, -1)" class="quick-button flex-1 rounded">-1</button>
+                            <button onclick="adjustValue(2, 1)" class="quick-button flex-1 rounded">+1</button>
+                            <button onclick="adjustValue(2, 10)" class="quick-button flex-1 rounded">+10</button>
+                        </div>
+                        <div id="numpad-container-2" class="hidden numpad-grid">
+                            <button onclick="numpadPress(2, '1')" class="numpad-btn">1</button>
+                            <button onclick="numpadPress(2, '2')" class="numpad-btn">2</button>
+                            <button onclick="numpadPress(2, '3')" class="numpad-btn">3</button>
+                            <button onclick="numpadPress(2, '4')" class="numpad-btn">4</button>
+                            <button onclick="numpadPress(2, '5')" class="numpad-btn">5</button>
+                            <button onclick="numpadPress(2, '6')" class="numpad-btn">6</button>
+                            <button onclick="numpadPress(2, '7')" class="numpad-btn">7</button>
+                            <button onclick="numpadPress(2, '8')" class="numpad-btn">8</button>
+                            <button onclick="numpadPress(2, '9')" class="numpad-btn">9</button>
+                            <button onclick="numpadPress(2, 'C')" class="numpad-btn text-red-400 font-bold">C</button>
+                            <button onclick="numpadPress(2, '0')" class="numpad-btn">0</button>
+                            <button onclick="numpadPress(2, 'DEL')" class="numpad-btn text-yellow-500 font-bold">←</button>
+                        </div>
+                    </div>
+                    <div class="flex gap-4 mt-5">
+                        <button onclick="applyDamage(2)" class="slhb-btn attack-button px-6 py-2 h-[46px] font-bold text-red-400">Attack</button>
+                        <button onclick="applyHeal(2)" class="slhb-btn heal-button px-6 py-2 h-[46px] font-bold text-green-400">Heal</button>
+                    </div>
+                </div>
+                <div class="flex justify-center pt-4 border-t border-gray-800">
+                    <button onclick="resetGame()" class="slhb-btn px-6 py-2 w-full font-bold text-gray-400 hover:text-white hover:border-gray-500 transition-all">
+                        Reset All
+                    </button>
+                </div>
+            </div>
+            <div id="tab-settings" class="hidden space-y-4">
+                <div class="pt-2 border-t border-gray-800">
+                    <label class="block text-xs text-gray-500 mb-1 uppercase tracking-wider">Quick Adjust Buttons</label>
+                    <div class="flex items-center space-x-2 p-2 slhb-input rounded-md">
+                        <input type="checkbox" id="quick-buttons-toggle" class="w-4 h-4 text-red-600 bg-gray-700 border-gray-600 rounded focus:ring-red-500">
+                        <span class="text-sm text-gray-200">Show buttons</span>
+                    </div>
+                </div>
+                <div class="pt-2 border-t border-gray-800">
+                    <label class="block text-xs text-gray-500 mb-1 uppercase tracking-wider">Input Numpad</label>
+                    <div class="flex items-center space-x-2 p-2 slhb-input rounded-md">
+                        <input type="checkbox" id="numpad-toggle" class="w-4 h-4 text-red-600 bg-gray-700 border-gray-600 rounded focus:ring-red-500">
+                        <span class="text-sm text-gray-200">Show numpad</span>
+                    </div>
+                </div>
+                <div class="pt-2 border-t border-gray-800">
+                    <label class="block text-xs text-gray-500 mb-1 uppercase tracking-wider">Boss 2 Visibility</label>
+                    <div class="flex items-center space-x-2 p-2 slhb-input rounded-md">
+                        <input type="checkbox" id="boss2-toggle" class="w-4 h-4 text-red-600 bg-gray-700 border-gray-600 rounded focus:ring-red-500">
+                        <span class="text-sm text-gray-200">Enable second boss</span>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1 uppercase tracking-wider">Boss Name</label>
+                    <input type="text" id="name-input-1" value="Boss" class="w-full p-2 slhb-input text-lg" placeholder="Enter Name">
+                </div>
+                <div id="boss2-name-setting">
+                    <label class="block text-xs text-gray-500 mb-1 uppercase tracking-wider">Boss 2 Name</label>
+                    <input type="text" id="name-input-2" value="Boss 2" class="w-full p-2 slhb-input text-lg" placeholder="Enter Name">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1 uppercase tracking-wider">Boss Portrait</label>
+                    <input type="file" id="icon-upload" accept="image/*" class="w-full p-2 slhb-input slhb-file-input text-sm text-gray-400">
+                </div>
+                <div class="flex gap-4 items-end pt-2 border-t border-gray-800">
+                    <div class="flex-1">
+                        <label class="block text-xs text-gray-500 mb-1 uppercase tracking-wider">Total Health Boss 1</label>
+                        <input type="number" id="max-hp-input-1" value="1000" class="w-full p-2 slhb-input text-center text-lg" placeholder="Max HP">
+                    </div>
+                    <button onclick="setMaxHp(1)" class="slhb-btn px-6 py-2 h-[46px] font-bold">Set Max</button>
+                </div>
+                <div id="boss2-hp-setting" class="flex gap-4 items-end pt-2 border-t border-gray-800">
+                    <div class="flex-1">
+                        <label class="block text-xs text-gray-500 mb-1 uppercase tracking-wider">Total Health Boss 2</label>
+                        <input type="number" id="max-hp-input-2" value="1000" class="w-full p-2 slhb-input text-center text-lg" placeholder="Max HP">
+                    </div>
+                    <button onclick="setMaxHp(2)" class="slhb-btn px-6 py-2 h-[46px] font-bold">Set Max</button>
+                </div>               
+            </div>
+            
+        </div>
+    </div>
+    <div id="victory-achieved" class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 pointer-events-none">
+        <div class="relative flex flex-col items-center">
+            <h1 class="text-6xl md:text-8xl font-black text-yellow-300 tracking-widest text-center">VICTORY ACHIEVED</h1>
+            <div class="w-3/4 h-1 bg-gradient-to-r from-transparent via-yellow-500 to-transparent mt-8 opacity-80"></div>
+        </div>
+    </div>
+
+    <script>
+        // Default hp
+        let bosses = {
+            1: { current: 1000, max: 1000 },
+            2: { current: 1000, max: 1000 }
+        };
+
+        // Call all elements
+        const victoryScreen = document.getElementById('victory-achieved');
+        const container = document.querySelector('.w-full.max-w-2xl');
+        
+        const tabActions = document.getElementById('tab-actions');
+        const tabSettings = document.getElementById('tab-settings');
+        const btnActions = document.getElementById('tab-button-actions');
+        const btnSettings = document.getElementById('tab-button-settings');
+
+        const iconUpload = document.getElementById('icon-upload');
+        const hudIconImg = document.getElementById('hud-icon-img');
+        const hudIconPlaceholder = document.getElementById('hud-icon-placeholder');
+        
+        const boss2Display = document.getElementById('boss2-display-container');
+        const boss2ActionControls = document.getElementById('boss2-action-controls');
+        const boss2NameSetting = document.getElementById('boss2-name-setting');
+        const boss2HpSetting = document.getElementById('boss2-hp-setting');
+        const boss2Toggle = document.getElementById('boss2-toggle');
+
+        const quickButtonsToggle = document.getElementById('quick-buttons-toggle');
+        const quickButtons1 = document.getElementById('quick-buttons-1');
+        const quickButtons2 = document.getElementById('quick-buttons-2');
+
+        const numpadToggle = document.getElementById('numpad-toggle');
+        const numpadContainer1 = document.getElementById('numpad-container-1');
+        const numpadContainer2 = document.getElementById('numpad-container-2');
+
+        updateVisuals(1);
+        updateVisuals(2);
+        toggleBoss2();
+        toggleQuickButtons();
+        toggleNumpad();
+
+        document.getElementById('change-input-1').addEventListener("keypress", (e) => { if (e.key === "Enter") applyDamage(1); });
+        document.getElementById('change-input-2').addEventListener("keypress", (e) => { if (e.key === "Enter") applyDamage(2); });
+        document.getElementById('max-hp-input-1').addEventListener("keypress", (e) => { if (e.key === "Enter") setMaxHp(1); });
+        document.getElementById('max-hp-input-2').addEventListener("keypress", (e) => { if (e.key === "Enter") setMaxHp(2); });
+
+        document.getElementById('name-input-1').addEventListener('input', (e) => {
+            document.getElementById('name-display-1').textContent = e.target.value || "Boss";
+        });
+        document.getElementById('name-input-2').addEventListener('input', (e) => {
+            document.getElementById('name-display-2').textContent = e.target.value || "Boss 2";
+        });
+        
+        boss2Toggle.addEventListener('change', toggleBoss2);
+        quickButtonsToggle.addEventListener('change', toggleQuickButtons);
+        numpadToggle.addEventListener('change', toggleNumpad);
+
+        iconUpload.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    hudIconImg.src = e.target.result;
+                    hudIconImg.classList.remove('hidden');
+                    hudIconPlaceholder.classList.add('hidden');
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Functions
+        function adjustValue(id, amount) {
+            const input = document.getElementById(`change-input-${id}`);
+            let currentVal = parseInt(input.value);
+            if(isNaN(currentVal)) currentVal = 0;
+            
+            let newVal = currentVal + amount;
+            if (newVal < 0) newVal = 0;
+            
+            input.value = newVal;
+        }
+
+        function numpadPress(id, key) {
+            const input = document.getElementById(`change-input-${id}`);
+            if (key === 'C') {
+                input.value = '';
+            } else if (key === 'DEL') {
+                input.value = input.value.slice(0, -1);
+            } else {
+                input.value += key;
+            }
+        }
+
+        function toggleQuickButtons() {
+            const isEnabled = quickButtonsToggle.checked;
+            quickButtons1.classList.toggle('hidden', !isEnabled);
+            quickButtons2.classList.toggle('hidden', !isEnabled);
+        }
+
+        function toggleNumpad() {
+            const isEnabled = numpadToggle.checked;
+            numpadContainer1.classList.toggle('hidden', !isEnabled);
+            numpadContainer2.classList.toggle('hidden', !isEnabled);
+        }
+        
+        function toggleBoss2() {
+            const isEnabled = boss2Toggle.checked;
+            
+            boss2Display.classList.toggle('hidden', !isEnabled);
+            boss2ActionControls.classList.toggle('hidden', !isEnabled);
+            boss2NameSetting.classList.toggle('hidden', !isEnabled);
+            boss2HpSetting.classList.toggle('hidden', !isEnabled);
+            
+            if (!isEnabled) {
+                bosses[2].current = 0; 
+                updateVisuals(2);
+                if (bosses[1].current === 0) {
+                    triggerVictory();
+                } else {
+                    resetVictory();
+                }
+            } else {
+                bosses[2].current = bosses[2].max;
+                updateVisuals(2);
+                resetVictory();
+            }
+        }
+
+        function switchTab(tabName) {
+            if (tabName === 'actions') {
+                tabActions.classList.remove('hidden');
+                tabSettings.classList.add('hidden');
+                btnActions.classList.add('active');
+                btnSettings.classList.remove('active');
+            } else {
+                tabActions.classList.add('hidden');
+                tabSettings.classList.remove('hidden');
+                btnActions.classList.remove('active');
+                btnSettings.classList.add('active');
+            }
+        }
+
+        function setMaxHp(id) {
+            const input = document.getElementById(`max-hp-input-${id}`);
+            const val = parseInt(input.value);
+            if (!isNaN(val) && val > 0) {
+                bosses[id].max = val;
+                bosses[id].current = val;
+                updateVisuals(id);
+                switchTab('actions');
+            }
+        }
+
+        function applyDamage(id) {
+            const input = document.getElementById(`change-input-${id}`);
+            const damage = parseInt(input.value);
+            
+            if (!isNaN(damage) && damage > 0 && bosses[id].current > 0) {
+                if(container) {
+                    container.classList.remove('shake');
+                    void container.offsetWidth; 
+                    container.classList.add('shake');
+                }
+
+                bosses[id].current = Math.max(0, bosses[id].current - damage);
+                updateVisuals(id);
+                
+                input.value = '';
+                input.focus();
+
+                const boss2Enabled = boss2Toggle.checked;
+                const isBoss2Dead = !boss2Enabled || bosses[2].current === 0;
+
+                if (bosses[1].current === 0 && isBoss2Dead) {
+                    triggerVictory();
+                }
+            }
+        }
+        
+        function applyHeal(id) {
+            const input = document.getElementById(`change-input-${id}`);
+            const healAmount = parseInt(input.value);
+            
+            if (!isNaN(healAmount) && healAmount > 0 && bosses[id].current < bosses[id].max) {
+                bosses[id].current = Math.min(bosses[id].max, bosses[id].current + healAmount);
+                updateVisuals(id);
+                resetVictory();
+
+                const redBar = document.getElementById(`red-bar-${id}`);
+                const yellowBar = document.getElementById(`yellow-bar-${id}`);
+
+                redBar.style.transition = 'none';
+                redBar.style.width = `${(bosses[id].current / bosses[id].max) * 100}%`;
+                redBar.offsetHeight; 
+                redBar.style.transition = 'width 0.15s linear';
+
+                yellowBar.style.width = `${(bosses[id].current / bosses[id].max) * 100}%`;
+
+                input.value = '';
+                input.focus();
+            }
+        }
+
+        function resetGame() {
+            bosses[1].current = bosses[1].max;
+            if (boss2Toggle.checked) {
+                bosses[2].current = bosses[2].max;
+            } else {
+                bosses[2].current = 0;
+            }
+            
+            resetVictory();
+            
+            [1, 2].forEach(id => {
+                updateVisuals(id);
+                document.getElementById(`change-input-${id}`).value = '';
+                
+                const yellowBar = document.getElementById(`yellow-bar-${id}`);
+                const redBar = document.getElementById(`red-bar-${id}`);
+                
+                yellowBar.style.transition = 'none';
+                redBar.style.transition = 'none';
+
+                if (id === 2 && !boss2Toggle.checked) {
+                     yellowBar.style.width = '0%';
+                     redBar.style.width = '0%';
+                } else {
+                     yellowBar.style.width = '100%';
+                     redBar.style.width = '100%';
+                }
+
+                yellowBar.offsetHeight; 
+                redBar.offsetHeight; 
+                setTimeout(() => {
+                    yellowBar.style.transition = 'width 0.8s ease-in 0.4s';
+                    redBar.style.transition = 'width 0.15s linear';
+                }, 50);
+            });
+        }
+
+        function updateVisuals(id) {
+            const percentage = (bosses[id].current / bosses[id].max) * 100;
+            const redBar = document.getElementById(`red-bar-${id}`);
+            const yellowBar = document.getElementById(`yellow-bar-${id}`);
+            
+            if (id === 2 && !boss2Toggle.checked) {
+                redBar.style.width = '0%';
+                yellowBar.style.width = '0%';
+            } else {
+                redBar.style.width = `${percentage}%`;
+                if (bosses[id].current < bosses[id].max) {
+                     yellowBar.style.width = `${percentage}%`;
+                }
+            }
+        }
+
+        function triggerVictory() {
+            victoryScreen.classList.add('active');
+        }
+
+        function resetVictory() {
+            victoryScreen.classList.remove('active');
+        }
+    </script>
+</body>
+</html>
